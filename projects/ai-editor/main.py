@@ -37,7 +37,20 @@ class AiEditor(object):
         self.editor.config(font=self.font)
 
     def aiGenerate(self):
-        # Coming soon
+        def run():
+            url = OLLAMA_URL + "/api/generate"
+            template = self.editor.get("1.0",tkinter.END)
+            data = json.dumps({
+                "model": "mistral",
+                "template": template,
+                "stream": True
+            })
+            with requests.post(url=url, data=data, stream=True) as resp:
+                for line in resp.iter_lines():
+                    if line:
+                        token = json.loads(line)["response"]
+                        self.editor.insert(tkinter.END, token, 'ai')
+        threading.Thread(target=run).start()
 
     def run(self):
         self.window.mainloop()
