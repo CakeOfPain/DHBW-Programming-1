@@ -50,9 +50,10 @@ class AiEditor(object):
 
     def aiGenerate(self):
         self.stopSignal = False
-        def run():
+        def generate():
             url = OLLAMA_URL + "/api/generate"
             template = self.editor.get("1.0",tkinter.END)
+            print(template)
             data = json.dumps({
                 "model": "mistral",
                 "template": template,
@@ -64,7 +65,7 @@ class AiEditor(object):
                     if line:
                         token = json.loads(line)["response"]
                         self.editor.insert(tkinter.END, token, 'ai')
-        threading.Thread(target=run).start()
+        threading.Thread(target=generate).start()
 
     def run(self):
         self.window.mainloop()
