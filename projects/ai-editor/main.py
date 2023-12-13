@@ -10,6 +10,8 @@ OLLAMA_URL = "http://127.0.0.1:11434"
 
 class AiEditor(object):
     def __init__(self):
+
+        self.before = ""
         self.stopSignal = False
 
         self.window = tkinter.Tk()
@@ -27,10 +29,13 @@ class AiEditor(object):
         self.ai_menu = tkinter.Menu(self.menu)
         self.ai_menu.add_command(label="generate", command=self.aiGenerate)
         self.ai_menu.add_command(label="stop generation", command=self.stopGenerating)
+        self.ai_menu.add_command(label="regenerate", command=self.regenerate)
 
         self.menu.add_cascade(label="ai", menu=self.ai_menu)
 
         self.window.config(menu=self.menu)
+        self.window.bind("<Command-r>", lambda _: self.regenerate())
+        self.window.bind("<Control-r>", lambda _: self.regenerate())
         self.window.bind("<Command-g>", lambda _: self.aiGenerate())
         self.window.bind("<Control-g>", lambda _: self.aiGenerate())
         self.window.bind("<Command-+>", lambda _: self.incFont(2))
@@ -45,6 +50,12 @@ class AiEditor(object):
                       size=self.font.cget("size")+n)
         self.editor.config(font=self.font)
 
+    def regenerate(self):
+        self.stopGenerating()
+        self.editor.delete('1.0', tkinter.END)
+        self.editor.insert(tkinter.END, self.before)
+        self.aiGenerate()
+
     def stopGenerating(self):
         self.stopSignal = True
 
@@ -53,7 +64,7 @@ class AiEditor(object):
         def generate():
             url = OLLAMA_URL + "/api/generate"
             template = self.editor.get("1.0",tkinter.END)
-            print(template)
+            self.before = template
             data = json.dumps({
                 "model": "mistral",
                 "template": template,
