@@ -43,7 +43,7 @@ class AiEditor(object):
 
         self.ai_menu.add_cascade(label="models", menu=self.models_menu)
 
-        self.menu.add_cascade(label="ai", menu=self.ai_menu)
+        self.menu.add_cascade(label="AI-Options", menu=self.ai_menu)
 
         self.window.config(menu=self.menu)
         self.window.bind("<Command-r>", lambda _: self.regenerate())
