@@ -24,7 +24,7 @@ class AiEditor(object):
         self.font = tkinter.font.Font(family="Jetbrains mono", size=10)
 
         self.editor = tkinter.Text(self.window, bg='#1c1c1c', fg='#ffffff')
-        self.editor.tag_config('ai', background='#092b00')
+        self.editor.tag_config('ai', foreground='#00ff00')
         self.editor.pack(side=tkinter.LEFT, anchor=tkinter.NW, expand=True, fill=tkinter.BOTH)
 
         
