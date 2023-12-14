@@ -11,13 +11,17 @@ OLLAMA_URL = "http://127.0.0.1:11434"
 class AiEditor(object):
     def __init__(self):
 
+        self.models = []
+        self.loadModels()
+        self.selected_model = "mistral"
+
         self.before = ""
         self.stopSignal = False
 
         self.window = tkinter.Tk()
         self.window.title("AI-Editor")
         
-        self.font = tkinter.font.Font(family="Arial", size=10)
+        self.font = tkinter.font.Font(family="Jetbrains mono", size=10)
 
         self.editor = tkinter.Text(self.window, bg='#1c1c1c', fg='#ffffff')
         self.editor.tag_config('ai', background='#092b00')
@@ -30,6 +34,15 @@ class AiEditor(object):
         self.ai_menu.add_command(label="generate", command=self.aiGenerate)
         self.ai_menu.add_command(label="stop generation", command=self.stopGenerating)
         self.ai_menu.add_command(label="regenerate", command=self.regenerate)
+        self.ai_menu.add_separator()
+
+        self.models_menu = tkinter.Menu(self.ai_menu)
+        for model in self.models:
+            def setModel():
+                self.selected_model = model
+            self.models_menu.add_radiobutton(label=model, command=setModel)
+
+        self.ai_menu.add_cascade(label="models", menu=self.models_menu)
 
         self.menu.add_cascade(label="ai", menu=self.ai_menu)
 
@@ -44,6 +57,12 @@ class AiEditor(object):
         self.window.bind("<Control-minus>", lambda _: self.incFont(-2))
         self.window.bind("<Command-x>", lambda _: self.stopGenerating())
         self.window.bind("<Control-x>", lambda _: self.stopGenerating())
+        
+    def loadModels(self):
+        url = OLLAMA_URL + "/api/tags"
+        response = requests.get(url)
+        self.models = list(map(lambda x: x['name'], response.json()['models']))
+        print(self.models)
 
     def incFont(self, n):
         self.font = tkinter.font.Font(family=self.font.cget("family"),
@@ -64,9 +83,10 @@ class AiEditor(object):
         def generate():
             url = OLLAMA_URL + "/api/generate"
             template = self.editor.get("1.0",tkinter.END)
+            print(template)
             self.before = template
             data = json.dumps({
-                "model": "mistral",
+                "model": self.selected_model,
                 "template": template,
                 "stream": True
             })
