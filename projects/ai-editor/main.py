@@ -13,13 +13,14 @@ class AiEditor(object):
 
         self.models = []
         self.loadModels()
-        self.selected_model = "mistral"
 
         self.before = ""
         self.stopSignal = False
 
         self.window = tkinter.Tk()
         self.window.title("AI-Editor")
+
+        self.selected_model = tkinter.StringVar(value="mistral:latest")
         
         self.font = tkinter.font.Font(family="Jetbrains mono", size=10)
 
@@ -38,9 +39,7 @@ class AiEditor(object):
 
         self.models_menu = tkinter.Menu(self.ai_menu)
         for model in self.models:
-            def setModel():
-                self.selected_model = model
-            self.models_menu.add_radiobutton(label=model, command=setModel)
+            self.models_menu.add_radiobutton(label=model, variable=self.selected_model)
 
         self.ai_menu.add_cascade(label="models", menu=self.models_menu)
 
@@ -57,7 +56,7 @@ class AiEditor(object):
         self.window.bind("<Control-minus>", lambda _: self.incFont(-2))
         self.window.bind("<Command-x>", lambda _: self.stopGenerating())
         self.window.bind("<Control-x>", lambda _: self.stopGenerating())
-        
+
     def loadModels(self):
         url = OLLAMA_URL + "/api/tags"
         response = requests.get(url)
@@ -79,6 +78,8 @@ class AiEditor(object):
         self.stopSignal = True
 
     def aiGenerate(self):
+        print("Using Model:", self.selected_model.get())
+
         self.stopSignal = False
         def generate():
             url = OLLAMA_URL + "/api/generate"
@@ -86,7 +87,7 @@ class AiEditor(object):
             print(template)
             self.before = template
             data = json.dumps({
-                "model": self.selected_model,
+                "model": self.selected_model.get(),
                 "template": template,
                 "stream": True
             })
