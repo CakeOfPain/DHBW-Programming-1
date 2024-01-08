@@ -21,15 +21,20 @@ class LlmFunction(object):
         self.label = label
         self.stops = stops
 
-    def write(self, message) -> None:
+    def write(self, message: str) -> None:
+        """ The write method allows you to append text to the prompt """
         self.prompt += message
-    def writeLine(self, message) -> None:
+    def writeLine(self, message: str) -> None:
+        """ The writeLine method allows you to append text to the prompt + auto appends a new line"""
         self.prompt += message + "\n"
     def autowrite(self):
+        """ The autowrite method allows you to continue the prompt by the ai, without running the llm """
         self.writeLine(self.run())
     def run(self) -> str:
+        """ The run method will resolve the function and creates the answer to the generated prompt of the llmfunc """
         data = json.dumps({
             "model": self.model,
+            "prompt": " ",
             "template": self.prompt,
             "stream": False,
             "options": {
