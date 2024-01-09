@@ -21,16 +21,16 @@ class AiEditor(object):
         self.window.title("AI-Editor")
 
         self.selected_model = tkinter.StringVar(value="mistral:latest")
-        
+
         self.font = tkinter.font.Font(family="Jetbrains mono", size=10)
 
         self.editor = tkinter.Text(self.window, bg='#1c1c1c', fg='#ffffff')
         self.editor.tag_config('ai', foreground='#00ff00')
         self.editor.pack(side=tkinter.LEFT, anchor=tkinter.NW, expand=True, fill=tkinter.BOTH)
 
-        
+
         self.menu = tkinter.Menu(self.window, tearoff=False)
-        
+
         self.ai_menu = tkinter.Menu(self.menu)
         self.ai_menu.add_command(label="generate", command=self.aiGenerate)
         self.ai_menu.add_command(label="stop generation", command=self.stopGenerating)
@@ -83,18 +83,24 @@ class AiEditor(object):
         self.stopSignal = False
         def generate():
             url = OLLAMA_URL + "/api/generate"
-            template = self.editor.get("1.0",tkinter.END)
+            template = self.editor.get("1.0",tkinter.END).rstrip()
+            self.editor.delete(f"1.0+{len(template)}c", tkinter.END)
             print(template)
             self.before = template
             data = json.dumps({
                 "model": self.selected_model.get(),
                 "template": template,
+                "prompt": " ",
+                "options": {
+                    "temperature": 1.0
+                },
                 "stream": True
             })
             with requests.post(url=url, data=data, stream=True) as resp:
                 for line in resp.iter_lines():
                     if self.stopSignal: break
                     if line:
+                        print(line)
                         token = json.loads(line)["response"]
                         self.editor.insert(tkinter.END, token, 'ai')
         threading.Thread(target=generate).start()
