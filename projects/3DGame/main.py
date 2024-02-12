@@ -1,8 +1,7 @@
 import pygame
 import math
-
-screen_w = 600
-screen_h = 600
+import time
+from collections import OrderedDict
 
 width = 200
 height = 200
@@ -22,122 +21,74 @@ fov = 600
 def drawPixel(x, y, z):
     x = int(x)
     y = int(y)
-    z = int(z)
     if x < 0 or y < 0 or x >= width or y >= height:
         return
     if z >= buffer[y][x][1]:
-        d = 1 # -(min(abs(z), 30) / 30)
+        fog = 100
+        d = 1 - (min(abs(z), fog) / fog)
         buffer[y][x] = ((int(currentColor[0] * d), int(currentColor[1] * d), int(currentColor[2] * d)), z)
 
-def drawLineY(x1, y1, z1, x2, y2, z2):
-    x1 = int((x1 / screen_h) * height)
-    x2 = int((x2 / screen_h) * height)
-    y1 = int((y1 / screen_w) * width)
-    y2 = int((y2 / screen_w) * width)
-
-    dx = x2 - x1
-    dy = y2 - y1
-    dz = z2 - z1
-
-    ix1 = min(x1, x2)
-    ix2 = max(x1, x2)
-    if ix1 < 0 and ix2 < 0: return
-    if ix1 > height and ix2 > height: return
-
-    ix1 = ix1 if ix1 >= 0 else 0
-    ix2 = ix2 if ix2 <= height else height
-    for x in range(ix1, ix2):
-        if dx == 0: continue
-        y = y1 + dy * (x - x1) // dx
-        z = z1 + dz * (x - x1) // dx
-        drawPixel(y, x, z)
-
 def drawLine(x1, y1, z1, x2, y2, z2):
-    # switching
-    switch_value = 160
-    if (int(x2 - x1)) > -switch_value and (int(x2 - x1)) < switch_value:
-        drawLineY(y1, x1, z1, y2, x2, z2)
-        return
-
-    x1 = int((x1 / screen_w) * width)
-    x2 = int((x2 / screen_w) * width)
-    y1 = int((y1 / screen_h) * height)
-    y2 = int((y2 / screen_h) * height)
 
     dx = x2 - x1
     dy = y2 - y1
     dz = z2 - z1
 
-    ix1 = min(x1, x2)
-    ix2 = max(x1, x2)
-    if ix1 < 0 and ix2 < 0: return
-    if ix1 > width and ix2 > width: return
-
-    ix1 = ix1 if ix1 >= 0 else 0
-    ix2 = ix2 if ix2 <= width else width
-    for x in range(ix1, ix2):
-        if dx == 0: continue
-        y = y1 + dy * (x - x1) // dx
-        z = z1 + dz * (x - x1) // dx
-        drawPixel(x, y, z)
+    interpolation = int(math.sqrt(dx ** 2 + dy ** 2 + dz ** 2)) + 10
+    if interpolation == 0: interpolation = 1
+    steps = (dx / interpolation, dy / interpolation, dz / interpolation)
+    for i in range(0, interpolation+1):
+        drawPixel(x1 + steps[0] * i, y1 + steps[1] * i, z1 + steps[2] * i)
 
 
-def fillBottomFlatTriangle(x1, y1, x2, y2, x3, y3):
-    invslope1 = (x2 - x1) / (y2 - y1)
-    invslope2 = (x3 - x1) / (y3 - y1)
+def drawTriangle(x1, y1, z1, x2, y2, z2, x3, y3, z3):
+    
+    sx = (x1 + x2 + x3) / 3
+    sy = (y1 + y2 + y3) / 3
+    sz = (z1 + z2 + z3) / 3
 
-    curx1 = x1
-    curx2 = x1
-
-    for scanlineY in range(y1, y2):
-        drawLine(int(curx1), scanlineY, 0, int(curx2), scanlineY, 0)
-        curx1 += invslope1
-        curx2 += invslope2
-
-def fillTopFlatTriangle(x1, y1, x2, y2, x3, y3):
-    invslope1 = (x3 - x1) / (y3 - y1)
-    invslope2 = (x3 - x2) / (y3 - y2)
-
-    curx1 = x3
-    curx2 = x3
-
-    for scanlineY in range(y3, y1):
-        drawLine(int(curx1), scanlineY, 0, int(curx2), scanlineY, 0)
-        curx1 -= invslope1
-        curx2 -= invslope2
+    interpolation1 = math.sqrt((x1 - sx)**2 + (y1 - sy)**2 + (z1 - sz)**2)
+    interpolation2 = math.sqrt((x2 - sx)**2 + (y2 - sy)**2 + (z2 - sz)**2)
+    interpolation3 = math.sqrt((x3 - sx)**2 + (y3 - sy)**2 + (z3 - sz)**2)
+    interpolation = int(max(interpolation1, interpolation2, interpolation3)) + 10
+    # interpolation = 2
+    steps1 = ((x1 - sx) / interpolation, (y1 - sy) / interpolation, (z1 - sz) / interpolation)
+    steps2 = ((x2 - sx) / interpolation, (y2 - sy) / interpolation, (z2 - sz) / interpolation)
+    steps3 = ((x3 - sx) / interpolation, (y3 - sy) / interpolation, (z3 - sz) / interpolation)
 
 
-def drawTriangle(x1, y1, x2, y2, x3, y3):
-    if y2 == y3:
-        fillBottomFlatTriangle(x1, y1, x2, y2, x3, y3)
-    elif y1 == y2:
-        fillTopFlatTriangle(x1, y1, x2, y2, x3, y3)
-    else:
-        x4, y4 = int(x1 + (float(y2 - y1) / float(y3 - y1)) * (x3 - x1)), y2
-        fillBottomFlatTriangle(x1, y1, x2, y2, x4, y4)
-        fillTopFlatTriangle(x2, y2, x4, y4, x3, y3)
+    for i in range(0, interpolation+1):
+        a = (x1 - steps1[0] * i, y1 - steps1[1] * i, z1 - steps1[2] * i)
+        b = (x2 - steps2[0] * i, y2 - steps2[1] * i, z2 - steps2[2] * i)
+        c = (x3 - steps3[0] * i, y3 - steps3[1] * i, z3 - steps3[2] * i)
+
+        drawLine(a[0], a[1], a[2], b[0], b[1], b[2])
+        drawLine(b[0], b[1], b[2], c[0], c[1], c[2])
+        drawLine(c[0], c[1], c[2], a[0], a[1], a[2])
+
 
 class Cube(object):
     def __init__(self, x, y, z, scale) -> None:
+        self.lineMode = False
         self.scale = scale
         self.rotation = [0, 0, 0]
         self.x = x
         self.y = y
         self.z = z
         self.resetPoints(scale)
-        self.connections = [
-            (0, 2),
-            (0, 4),
-            (4, 6),
-            (6, 2),
-            (1, 3),
-            (1, 5),
-            (5, 7),
-            (7, 3),
-            (0, 1),
-            (4, 5),
-            (6, 7),
-            (2, 3),
+        self.polygons = [
+            (0, 2, 4),
+            (6, 2, 4),
+            (1, 3, 5),
+            (7, 3, 5),
+            (1, 0, 5),
+            (0, 4, 5),
+            (2, 3, 7),
+            (6, 2, 7),
+            (1, 0, 3),
+            (2, 0, 3),
+            (5, 4, 6),
+            (7, 6, 5),
         ]
     def resetPoints(self, scale):
         self.points = [
@@ -178,9 +129,10 @@ class Cube(object):
 
             self.points[i] = (x, y, z)
 
-        for i in range(len(self.connections)):
-            a = self.points[self.connections[i][0]]
-            b = self.points[self.connections[i][1]]
+        for i in range(len(self.polygons)):
+            a = self.points[self.polygons[i][0]]
+            b = self.points[self.polygons[i][1]]
+            c = self.points[self.polygons[i][2]]
 
             x = self.x + camera_x
             y = self.y + camera_y
@@ -204,10 +156,12 @@ class Cube(object):
                 y * math.sin(camera_rx) + z * math.cos(camera_rx),
             )
 
-            start_x = (fov * (x + a[0])) / (z + a[2]) + screen_w/2
-            start_y = (fov * (y + a[1])) / (z + a[2]) + screen_h/2
-            end_x = (fov * (x + b[0])) / (z + b[2]) + screen_w/2
-            end_y = (fov * (y + b[1])) / (z + b[2]) + screen_h/2
+            ax = (fov * (x + a[0])) / (z + a[2]) + width/2
+            ay = (fov * (y + a[1])) / (z + a[2]) + height/2
+            bx = (fov * (x + b[0])) / (z + b[2]) + width/2
+            by = (fov * (y + b[1])) / (z + b[2]) + height/2
+            cx = (fov * (x + c[0])) / (z + c[2]) + width/2
+            cy = (fov * (y + c[1])) / (z + c[2]) + height/2
             
             # Out of View
             # if z + a[2] >= 0: continue
@@ -217,13 +171,25 @@ class Cube(object):
             # if start_x < min_limit || start_y < min_limit || end_x < min_limit || end_y < min_limit) continue;
             # if start_x == Infinity || start_y === Infinity || end_x === Infinity || end_y === Infinity) continue;
             
-            drawLine(
-                start_x,
-                start_y,
+            if self.lineMode:
+                drawLine(ax,ay,z + a[2],bx,by,z + b[2])
+                drawLine(cx,cy,z + c[2],bx,by,z + b[2])
+                drawLine(ax,ay,z + a[2],cx,cy,z + c[2],)
+                continue
+            
+            global currentColor
+            currentColor = (int(255 * (self.polygons[i][1] / 7)), int(255 * (self.polygons[i][0] / 7)), int(255 * (self.polygons[i][2] / 7)))
+
+            drawTriangle(
+                ax,
+                ay,
                 z + a[2],
-                end_x,
-                end_y,
-                z + b[2]
+                bx,
+                by,
+                z + b[2],
+                cx,
+                cy,
+                z + c[2]
             )
 
     def rotateZ(self, phi):
@@ -243,21 +209,42 @@ running = True
 
 screen.fill('black')
 
-cube = Cube(0, 0, -20, 5)
+cube1 = Cube(0, 0, -50, 1)
+cube2 = Cube(0, 0, -50, 1)
 
 while running:
+    cube2.x = math.cos(time.time()) * 2 - 2
+    cube2.y = math.sin(time.time()) * 5
+    cube2.z = math.cos(time.time()) * 30 - 50
+    cube1.z = math.cos(time.time()-1.5) * 30 - 50
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
     currentColor = (255, 255, 255);
 
-    cube.draw()
-    cube.rotateX(0.01)
-    cube.rotateY(0.01)
-    cube.rotateZ(0.01)
+    # cube.lineMode = True
+    cube1.draw()
+    cube1.rotateX(0.01)
+    cube1.rotateY(0.01)
+    cube1.rotateZ(0.01)
+    
+    cube2.draw()
+    cube2.rotateX(0.05)
+    cube2.rotateY(0.02)
+    cube2.rotateZ(0.03)
+        
+    
+    # keys = pygame.key.get_pressed()
+    # if keys[pygame.K_UP]:
+    #     cube.rotateX(0.01)
+    # if keys[pygame.K_DOWN]:
+    #     cube.rotateX(-0.01)
+    # if keys[pygame.K_LEFT]:
+    #     cube.rotateY(0.01)
+    # if keys[pygame.K_RIGHT]:
+    #     cube.rotateY(-0.01)
 
-    # drawTriangle(0, 0, 100, 100, 300, 200)
 
     for y, row in enumerate(buffer):
         for x, pixel in enumerate(row):
@@ -267,6 +254,7 @@ while running:
     buffer = [[((0, 0, 0), -99999)] * width for _ in range(height)]
 
     clock.tick(60)
+    # print(clock.get_fps())
 
 
 pygame.quit();
