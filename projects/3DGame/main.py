@@ -49,7 +49,7 @@ class Triangle(object):
         interpolation2 = math.sqrt((x2 - sx)**2 + (y2 - sy)**2 + (z2 - sz)**2)
         interpolation3 = math.sqrt((x3 - sx)**2 + (y3 - sy)**2 + (z3 - sz)**2)
         interpolation = int(max(interpolation1, interpolation2, interpolation3)) + 10
-        # interpolation = int((time.time() - time_start) + 1)
+        # interpolation = int((time.time()- time_start) * 0.1  + 1)
         steps1 = ((x1 - sx) / interpolation, (y1 - sy) / interpolation, (z1 - sz) / interpolation)
         steps2 = ((x2 - sx) / interpolation, (y2 - sy) / interpolation, (z2 - sz) / interpolation)
         steps3 = ((x3 - sx) / interpolation, (y3 - sy) / interpolation, (z3 - sz) / interpolation)
@@ -83,7 +83,7 @@ def drawPixel(x, y, z):
         return
     if z >= buffer[y][x][1]:
         fog = 100
-        d = 1 # - (min(abs(z), fog) / fog)
+        d = 1 - (min(abs(z), fog) / fog)
         buffer[y][x] = ((int(currentColor[0] * d), int(currentColor[1] * d), int(currentColor[2] * d)), z)
 
 class Line(object):
@@ -154,8 +154,8 @@ class Cube(object):
             (1, 0, 7, 3), # left
             (1, 6, 5, 0),
             (5, 2, 1, 1), # top
-            (0, 7, 4, 4),
-            (4, 3, 0, 5) # bottom
+            (4, 7, 0, 4),
+            (0, 3, 4, 5) # bottom
         ]
     def resetPoints(self, scale):
         self.points = [
@@ -170,6 +170,7 @@ class Cube(object):
         ]
 
     def draw(self):
+        global currentColor
         self.resetPoints(self.scale)
 
         for i in range(len(self.points)):
@@ -225,21 +226,20 @@ class Cube(object):
             )
 
 
-            # na = (x + a[0], y + a[1], z + a[2])
-            # nb = (x + b[0], y + b[1], z + b[2])
-            # nc = (x + c[0], y + c[1], z + c[2])
-            # line1 = (nb[0] - na[0], nb[1] - na[1], nb[2] - na[2])
-            # line2 = (nc[0] - na[0], nc[1] - na[1], nc[2] - na[2])
-            # normal = [line1[1]*line2[2] - line1[2]*line2[1],
-            #         line1[2]*line2[0] - line1[0]*line2[2],
-            #         line1[0]*line2[1] - line1[1]*line2[0]]
-            # length = math.sqrt(normal[0]**2 + normal[1]**2 + normal[2]**2)
-            # normal[0] /= length
-            # normal[1] /= length
-            # normal[2] /= length
-            # if normal[2] > 0:
-            #     print("yes")
-            #     continue
+            na = (x + a[0], y + a[1], z + a[2])
+            nb = (x + b[0], y + b[1], z + b[2])
+            nc = (x + c[0], y + c[1], z + c[2])
+            line1 = (nb[0] - na[0], nb[1] - na[1], nb[2] - na[2])
+            line2 = (nc[0] - na[0], nc[1] - na[1], nc[2] - na[2])
+            normal = [line1[1]*line2[2] - line1[2]*line2[1],
+                    line1[2]*line2[0] - line1[0]*line2[2],
+                    line1[0]*line2[1] - line1[1]*line2[0]]
+            length = math.sqrt(normal[0]**2 + normal[1]**2 + normal[2]**2)
+            normal[0] /= length
+            normal[1] /= length
+            normal[2] /= length
+            if normal[2] < 0:
+                continue
 
             ax = (fov * (x + a[0])) / (z + a[2]) + width/2
             ay = (fov * (y + a[1])) / (z + a[2]) + height/2
@@ -248,21 +248,12 @@ class Cube(object):
             cx = (fov * (x + c[0])) / (z + c[2]) + width/2
             cy = (fov * (y + c[1])) / (z + c[2]) + height/2
 
-            # Out of View
-            # if z + a[2] >= 0: continue
-            # max_limit = 800;
-            # min_limit = -200;
-            # if start_x > max_limit || start_y > max_limit || end_x > max_limit || end_y > max_limit) continue;
-            # if start_x < min_limit || start_y < min_limit || end_x < min_limit || end_y < min_limit) continue;
-            # if start_x == Infinity || start_y === Infinity || end_x === Infinity || end_y === Infinity) continue;
-            
             if self.lineMode:
                 Line(ax,ay,z + a[2],bx,by,z + b[2]).draw()
                 Line(cx,cy,z + c[2],bx,by,z + b[2]).draw()
                 Line(ax,ay,z + a[2],cx,cy,z + c[2]).draw()
                 continue
-            
-            global currentColor
+
             currentColor = (int(255 * (self.polygons[i][1] / 7)), int(255 * (self.polygons[i][0] / 7)), int(255 * (self.polygons[i][2] / 7)))
             vertex1 = Vertex(ax,ay,z + a[2])
             vertex2 = Vertex(bx,by,z + b[2])
@@ -305,7 +296,6 @@ while running:
     cube2.z = math.cos(time.time()) * 30 - 50
     cube1.z = math.cos(time.time()-1.5) * 30 - 50
 
-    # cube.lineMode = True
     cube1.draw()
     cube1.rotateX(0.01)
     cube1.rotateY(0.01)
@@ -318,13 +308,13 @@ while running:
     
     # keys = pygame.key.get_pressed()
     # if keys[pygame.K_UP]:
-    #     cube.rotateX(0.01)
+    #     cube2.rotateX(0.01)
     # if keys[pygame.K_DOWN]:
-    #     cube.rotateX(-0.01)
+    #     cube2.rotateX(-0.01)
     # if keys[pygame.K_LEFT]:
-    #     cube.rotateY(0.01)
+    #     cube2.rotateY(0.01)
     # if keys[pygame.K_RIGHT]:
-    #     cube.rotateY(-0.01)
+    #     cube2.rotateY(-0.01)
 
 
     for y, row in enumerate(buffer):
