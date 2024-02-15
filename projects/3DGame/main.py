@@ -238,7 +238,10 @@ class Cube(object):
             normal[0] /= length
             normal[1] /= length
             normal[2] /= length
-            if normal[2] < 0:
+
+            if (normal[0] * (na[0] - camera_x) +
+                normal[1] * (na[1] - camera_y) +
+                normal[2] * (na[2] - camera_z)) > 0.0:
                 continue
 
             ax = (fov * (x + a[0])) / (z + a[2]) + width/2
