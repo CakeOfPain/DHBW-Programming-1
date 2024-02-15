@@ -125,7 +125,7 @@ class Line(object):
             drawPixel(x1 + steps[0] * i, y1 + steps[1] * i, z1 + steps[2] * i)
 
 class Cube(object):
-    def __init__(self, x, y, z, scale) -> None:
+    def __init__(self, x, y, z, scale, textures: list[Texture]) -> None:
         self.lineMode = False
         self.scale = scale
         self.rotation = [0, 0, 0]
@@ -134,28 +134,21 @@ class Cube(object):
         self.z = z
         self.resetPoints(scale)
 
-        self.textures = [
-            Texture(textures, 0, 15, 0, 0, 15, 0),
-            Texture(textures, 15, 0, 15, 15, 0, 15),
-            Texture(textures, 16, 15, 16, 0, 31, 0),
-            Texture(textures, 31, 0, 31, 15, 16, 15),
-            Texture(textures, 32, 15, 32, 0, 47, 0),
-            Texture(textures, 47, 0, 47, 15, 32, 15),
-        ]
+        self.textures = textures
 
         self.polygons = [
-            (0, 1, 2, 2),
-            (2, 3, 0, 3), # front
-            (4, 5, 6, 2),
-            (6, 7, 4, 3), # back
-            (3, 2, 5, 2),
-            (5, 4, 3, 3), # right
-            (7, 6, 1, 2),
-            (1, 0, 7, 3), # left
-            (1, 6, 5, 0),
-            (5, 2, 1, 1), # top
-            (4, 7, 0, 4),
-            (0, 3, 4, 5) # bottom
+            (0, 1, 2, 3),
+            (2, 3, 0, 2), # front
+            (4, 5, 6, 3),
+            (6, 7, 4, 2), # back
+            (3, 2, 5, 3),
+            (5, 4, 3, 2), # right
+            (7, 6, 1, 3),
+            (1, 0, 7, 2), # left
+            (1, 6, 5, 5),
+            (5, 2, 1, 4), # top
+            (4, 7, 0, 0),
+            (0, 3, 4, 1) # bottom
         ]
     def resetPoints(self, scale):
         self.points = [
@@ -284,8 +277,26 @@ running = True
 
 screen.fill('black')
 
-cube1 = Cube(0, 0, -50, 1)
-cube2 = Cube(0, 0, -50, 1)
+grassTextures = [
+    Texture(textures, 0, 15, 0, 0, 15, 0),
+    Texture(textures, 15, 0, 15, 15, 0, 15),
+    Texture(textures, 16, 15, 16, 0, 31, 0),
+    Texture(textures, 31, 0, 31, 15, 16, 15),
+    Texture(textures, 32, 15, 32, 0, 47, 0),
+    Texture(textures, 47, 0, 47, 15, 32, 15),
+]
+
+stoneTextures = [
+    Texture(textures, 0, 31, 0, 16, 15, 16),
+    Texture(textures, 15, 16, 15, 31, 0, 31),
+    Texture(textures, 0, 31, 0, 16, 15, 16),
+    Texture(textures, 15, 16, 15, 31, 0, 31),
+    Texture(textures, 0, 31, 0, 16, 15, 16),
+    Texture(textures, 15, 16, 15, 31, 0, 31),
+]
+
+cube1 = Cube(0, 0, -50, 1, grassTextures)
+cube2 = Cube(0, 0, -50, 1, stoneTextures)
 
 while running:
     for event in pygame.event.get():
@@ -304,6 +315,7 @@ while running:
     cube1.rotateY(0.01)
     cube1.rotateZ(0.01)
     
+    # cube2.lineMode = True
     cube2.draw()
     cube2.rotateX(0.05)
     cube2.rotateY(0.02)
